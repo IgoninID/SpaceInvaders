@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.control.Label?>
+
+<VBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml" alignment="CENTER" spacing="10" fx:controller="com.classig.gamespace.GameController">
+    <Label fx:id="scoreLabel" text="Score: 0" style="-fx-text-fill: white; -fx-font-size: 20;" />
+    <Canvas fx:id="gameCanvas" width="800" height="600" />
+</VBox>

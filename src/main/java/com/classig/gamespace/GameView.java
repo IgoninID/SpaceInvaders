@@ -1,54 +1,67 @@
 package com.classig.gamespace;
 
 import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import javafx.scene.text.TextAlignment;
 
+/**
+ * Класс представления, отвечающий за отрисовку игрового состояния.
+ * Соответствует SRP, фокусируясь только на координации отрисовки.
+ */
 public class GameView {
-    private Canvas canvas;
-    private GraphicsContext gc;
+
+    /**
+     * Объект для выполнения отрисовки
+     */
+    private final Renderer renderer;
+
+    /**
+     * Игровой холст
+     */
+    private final Canvas canvas;
+
+    /**
+     * Ширина холста
+     */
     private static final int WIDTH = 800;
+
+    /**
+     * Высота холста
+     */
     private static final int HEIGHT = 600;
 
-    public GameView(Canvas canvas) {
+    /**
+     * Конструктор для инициализации представления.
+     * @param canvas   игровой холст
+     * @param renderer объект для отрисовки
+     */
+    public GameView(Canvas canvas, Renderer renderer) {
         this.canvas = canvas;
-        this.gc = canvas.getGraphicsContext2D();
+        this.renderer = renderer;
     }
 
+    /**
+     * Отрисовывает текущее состояние игры на холсте.
+     * @param model игровая модель
+     */
     public void render(GameModel model) {
-        // Clear canvas
-        gc.setFill(Color.grayRgb(20));
-        gc.fillRect(0, 0, WIDTH, HEIGHT);
+        renderer.clear(WIDTH, HEIGHT); // Очищает холст
+        renderer.setScore(model.getScore()); // Устанавливает счёт для стиля выстрелов
+        renderer.drawScore(model.getScore()); // Отрисовывает счёт
 
-        // Draw score
-        gc.setTextAlign(TextAlignment.CENTER);
-        gc.setFont(Font.font(20));
-        gc.setFill(Color.WHITE);
-        gc.fillText("Score: " + model.getScore(), 60, 20);
-
-        // Draw game over
-        if (model.isGameOver()) {
-            gc.setFont(Font.font(35));
-            gc.setFill(Color.YELLOW);
-            gc.fillText("Game Over \n Your Score is: " + model.getScore() + " \n Click to play again",
-                    WIDTH / 2, HEIGHT / 2.5);
+        if (model.isGameOver()) { // Отрисовывает экран окончания игры, если игра завершена
+            renderer.drawGameOver(model.getScore(), WIDTH, HEIGHT);
         }
 
-        // Draw universe
-        model.getUniverse().forEach(u -> u.draw(gc));
-
-        // Draw player
-        model.getPlayer().draw(gc);
-
-        // Draw bombs
-        model.getBombs().forEach(b -> b.draw(gc));
-
-        // Draw shots
-        model.getShots().forEach(s -> s.draw(gc, model.getScore()));
+        // Отрисовывает все игровые объекты
+        model.getUniverse().forEach(u -> u.draw(renderer));
+        model.getPlayer().draw(renderer);
+        model.getEnemies().forEach(e -> e.draw(renderer));
+        model.getShots().forEach(s -> s.draw(renderer));
     }
 
+    /**
+     * Возвращает игровой холст.
+     * @return объект Canvas
+     */
     public Canvas getCanvas() {
         return canvas;
     }

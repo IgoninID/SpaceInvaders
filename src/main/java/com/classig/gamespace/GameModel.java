@@ -4,101 +4,126 @@ import javafx.scene.image.Image;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.stream.IntStream;
 
+/**
+ * Основной класс модели игры, координирующий состояние игровых объектов.
+ * Использует менеджеры (EnemyManager, ShotManager, ScoreManager) для соответствия SRP.
+ * Зависит от абстракции EnemyFactory, поддерживая DIP.
+ */
 public class GameModel {
+
+    /**
+     * Генератор случайных чисел
+     */
     private static final Random RAND = new Random();
+
+    /**
+     * Ширина игрового поля
+     */
     private static final int WIDTH = 800;
+
+    /**
+     * Высота игрового поля
+     */
     private static final int HEIGHT = 600;
+
+    /**
+     * Размер игрока
+     */
     private static final int PLAYER_SIZE = 60;
-    private static final int MAX_BOMBS = 10;
-    private static final int MAX_SHOTS = MAX_BOMBS * 2;
+
+    /**
+     * Изображение игрока
+     */
     private static final Image PLAYER_IMG = new Image("file:src/main/resources/com/classig/gamespace/Images/Player.png");
-    private static final Image[] BOMBS_IMG = {
-            new Image("file:src/main/resources/com/classig/gamespace/Images/alien1.png"), new Image("file:src/main/resources/com/classig/gamespace/Images/alien2.png"),
-            new Image("file:src/main/resources/com/classig/gamespace/Images/alien3.png"), new Image("file:src/main/resources/com/classig/gamespace/Images/alien4.png"),
-            new Image("file:src/main/resources/com/classig/gamespace/Images/alien5.png"), new Image("file:src/main/resources/com/classig/gamespace/Images/alien6.png"),
-            new Image("file:src/main/resources/com/classig/gamespace/Images/alien7.png"), new Image("file:src/main/resources/com/classig/gamespace/Images/alien8.png"),
-            new Image("file:src/main/resources/com/classig/gamespace/Images/alien9.png"), new Image("file:src/main/resources/com/classig/gamespace/Images/alien10.png")
-    };
 
+    /**
+     * Объект игрока
+     */
     private Rocket player;
-    private List<Shot> shots;
+
+    /**
+     * Список звёзд фона
+     */
     private List<Universe> universe;
-    private List<Bomb> bombs;
+
+    /**
+     * Менеджер врагов
+     */
+    private EnemyManager enemyManager;
+
+    /**
+     * Менеджер выстрелов
+     */
+    private ShotManager shotManager;
+
+    /**
+     * Менеджер счёта
+     */
+    private ScoreManager scoreManager;
+
+    /**
+     * Флаг окончания игры
+     */
     private boolean gameOver;
-    private int score;
 
-    public GameModel() {
-        setup();
+    /**
+     * Конструктор для инициализации модели игры.
+     * @param enemyFactory фабрика для создания врагов
+     */
+    public GameModel(EnemyFactory enemyFactory) {
+        this.scoreManager = new ScoreManager();
+        this.enemyManager = new EnemyManager(enemyFactory, scoreManager);
+        this.shotManager = new ShotManager(scoreManager);
+        this.universe = new ArrayList<>();
+        setup(); // Инициализирует начальное состояние игры
     }
 
+    /**
+     * Инициализирует начальное состояние игры.
+     */
     private void setup() {
-        universe = new ArrayList<>();
-        shots = new ArrayList<>();
-        bombs = new ArrayList<>();
         player = new Rocket(WIDTH / 2, HEIGHT - PLAYER_SIZE, PLAYER_SIZE, PLAYER_IMG);
-        score = 0;
+        universe.clear();
+        scoreManager.resetScore();
         gameOver = false;
-        IntStream.range(0, MAX_BOMBS).mapToObj(i -> newBomb()).forEach(bombs::add);
     }
 
+    /**
+     * Обновляет состояние игры в каждом цикле.
+     */
     public void update() {
         if (gameOver) return;
 
-        // Update player
+        // Обновляет игрока
         player.update();
         if (player.isDestroyed()) gameOver = true;
 
-        // Update bombs
-        bombs.forEach(bomb -> {
-            bomb.update();
-            if (player.collide(bomb) && !player.isExploding() && !bomb.isExploding()) {
-                player.explode();
-            }
-        });
+        // Обновляет врагов и выстрелы
+        enemyManager.update(player);
+        shotManager.update(enemyManager.getEnemies());
 
-        // Update shots
-        for (int i = shots.size() - 1; i >= 0; i--) {
-            Shot shot = shots.get(i);
-            if (shot.getPosY() < 0 || shot.isToRemove()) {
-                shots.remove(i);
-                continue;
-            }
-            shot.update();
-            for (Bomb bomb : bombs) {
-                if (shot.collide(bomb) && !bomb.isExploding()) {
-                    score++;
-                    bomb.explode();
-                    shot.setToRemove(true);
-                }
-            }
-        }
+        // Обновляет звёзды фона (фикс для движения вниз)
+        universe.forEach(Universe::update);
 
-        // Replace destroyed bombs
-        for (int i = bombs.size() - 1; i >= 0; i--) {
-            if (bombs.get(i).isDestroyed()) {
-                bombs.set(i, newBomb());
-            }
-        }
-
-        // Update universe
+        // Случайно добавляет новые звёзды
         if (RAND.nextInt(10) > 2) {
             universe.add(new Universe());
         }
+        // Удаляет звёзды, вышедшие за нижнюю границу экрана
         universe.removeIf(u -> u.getPosY() > HEIGHT);
     }
 
-    public Bomb newBomb() {
-        return new Bomb(50 + RAND.nextInt(WIDTH - 100), 0, PLAYER_SIZE, BOMBS_IMG[RAND.nextInt(BOMBS_IMG.length)], score);
-    }
-
+    /**
+     * Выполняет выстрел игрока.
+     */
     public void shoot() {
-        if (shots.size() < MAX_SHOTS) {
-            shots.add(player.shoot());
-        }
+        shotManager.shoot(player);
     }
 
+    /**
+     * Перезапускает игру, если она завершена.
+     */
     public void restart() {
         if (gameOver) {
             gameOver = false;
@@ -106,12 +131,45 @@ public class GameModel {
         }
     }
 
-    // Getters and setters
+    /**
+     * Возвращает объект игрока.
+     * @return объект Rocket
+     */
     public Rocket getPlayer() { return player; }
-    public List<Shot> getShots() { return shots; }
+
+    /**
+     * Возвращает список звёзд фона.
+     * @return список объектов Universe
+     */
     public List<Universe> getUniverse() { return universe; }
-    public List<Bomb> getBombs() { return bombs; }
-    public boolean isGameOver () { return gameOver; }
-    public int getScore() { return score; }
+
+    /**
+     * Возвращает список врагов.
+     * @return список объектов Rocket
+     */
+    public List<Rocket> getEnemies() { return enemyManager.getEnemies(); }
+
+    /**
+     * Возвращает список выстрелов.
+     * @return список объектов Shot
+     */
+    public List<Shot> getShots() { return shotManager.getShots(); }
+
+    /**
+     * Проверяет, завершена ли игра.
+     * @return true, если игра завершена
+     */
+    public boolean isGameOver() { return gameOver; }
+
+    /**
+     * Возвращает текущий счёт.
+     * @return текущий счёт
+     */
+    public int getScore() { return scoreManager.getScore(); }
+
+    /**
+     * Устанавливает X-координату игрока.
+     * @param x новая X-координата
+     */
     public void setPlayerX(int x) { player.setPosX(x); }
 }

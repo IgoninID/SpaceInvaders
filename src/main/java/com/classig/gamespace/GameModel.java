@@ -7,8 +7,8 @@ import java.util.Random;
 
 /**
  * Основной класс модели игры, координирующий состояние игровых объектов.
- * Использует менеджеры (EnemyManager, ShotManager, ScoreManager) для соответствия SRP.
- * Зависит от абстракции EnemyFactory, поддерживая DIP.
+ * Использует менеджеры (EnemyManager, ShotManager, ScoreManager) для соответствия принципа единственной ответственности (Srp).
+ * Зависит от абстракции EnemyFactory, поддерживая принцип инверсии зависимостей (Dip).
  */
 public class GameModel {
 

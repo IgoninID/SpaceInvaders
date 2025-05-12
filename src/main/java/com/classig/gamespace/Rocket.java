@@ -5,7 +5,7 @@ import javafx.scene.image.Image;
 /**
  * Базовый класс для игровых объектов типа "ракета" (игрок или враги).
  * Реализует интерфейсы Drawable, Updatable и Collidable для отрисовки, обновления и проверки столкновений.
- * Поддерживает принцип подстановки Лисков (LSP) для наследников, таких как Bomb.
+ * Поддерживает принцип подстановки Лисков (Lsp) для наследников, таких как Bomb.
  */
 public class Rocket implements Drawable, Updatable, Collidable {
 
